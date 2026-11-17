@@ -225,6 +225,7 @@ Engine/
 ├── enhance               Terminal version
 ├── setup.sh              installs / repairs everything
 ├── README.md             this file
+├── LICENSE               MIT license for Engine's code
 ├── requirements.txt      exact Python library versions
 ├── engine/               the core (the "body")
 │   ├── core.py           open → upscale → resize → save (one model or several)
@@ -243,6 +244,10 @@ Engine/
 ```
 
 ## Credits and licenses
+
+Engine's own code is released under the **MIT License** (see `LICENSE`).
+The model files are not part of this repository. `setup.sh` downloads them
+from their authors, and each keeps its own license:
 
 - **UltraSharp / UltraSharp V2** by Kim2091: CC BY-NC-SA 4.0 (personal, non-commercial use).
 - **Real-ESRGAN** by Xintao Wang et al.: BSD-3-Clause.
