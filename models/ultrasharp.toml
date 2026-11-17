@@ -1,0 +1,21 @@
+name = "UltraSharp"
+backend = "spandrel"
+weights = "4x-UltraSharp.safetensors"
+description = "Classic ESRGAN model tuned for crisp edges."
+best_for = "Screenshots with text or UI, line art. Very fast."
+speed = "~25 s"
+default_scale = 2
+max_scale = 4
+order = 40
+license = "CC BY-NC-SA 4.0 (personal / non-commercial use)"
+source = "https://huggingface.co/Kim2091/UltraSharp"
+
+[options]
+tile = 512
+overlap = 32
+half = true
+
+[[files]]
+path = "4x-UltraSharp.safetensors"
+url = "https://huggingface.co/Kim2091/UltraSharp/resolve/main/4x-UltraSharp.safetensors"
+sha256 = "36a340b5509b699d2c06cb445ddc1d3d39199ac734d889ed6d7915f60e05bcbc"

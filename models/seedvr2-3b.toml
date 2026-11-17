@@ -1,0 +1,28 @@
+name = "SeedVR2 3B"
+backend = "seedvr2"
+weights = "seedvr2/seedvr2_ema_3b_fp16.safetensors"
+description = "One-step diffusion upscaler from ByteDance. Rebuilds realistic texture; slowest."
+best_for = "Most realistic texture for photos. Slowest, and can invent details (wrong letters or numbers)."
+speed = "~4-9 min"
+default_scale = 2
+max_scale = 4
+order = 30
+license = "Apache-2.0"
+source = "https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler"
+
+[options]
+max_output_megapixels = 8   # above this, SeedVR2 generates up to 8 MP and plain resizing does the rest
+color_correction = "lab"     # lab | wavelet | wavelet_adaptive | hsv | adain | none
+vae_tiling = true
+vae_tile_size = 512    # smaller tiles = less memory; 512 was 2x faster than 1024 on this Mac
+seed = 42
+
+[[files]]
+path = "seedvr2/seedvr2_ema_3b_fp16.safetensors"
+url = "https://huggingface.co/numz/SeedVR2_comfyUI/resolve/main/seedvr2_ema_3b_fp16.safetensors"
+sha256 = "2fd0e03a3dad24e07086750360727ca437de4ecd456f769856e960ae93e2b304"
+
+[[files]]
+path = "seedvr2/ema_vae_fp16.safetensors"
+url = "https://huggingface.co/numz/SeedVR2_comfyUI/resolve/main/ema_vae_fp16.safetensors"
+sha256 = "20678548f420d98d26f11442d3528f8b8c94e57ee046ef93dbb7633da8612ca1"

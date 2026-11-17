@@ -1,0 +1,21 @@
+name = "Real-ESRGAN"
+backend = "spandrel"
+weights = "RealESRGAN_x4plus.pth"
+description = "The original Real-ESRGAN general model (what Upscayl and many free sites use)."
+best_for = "Noisy or compressed photos. Smoother, cleans up JPEG artifacts."
+speed = "~25 s"
+default_scale = 2
+max_scale = 4
+order = 50
+license = "BSD-3-Clause"
+source = "https://github.com/xinntao/Real-ESRGAN"
+
+[options]
+tile = 512
+overlap = 32
+half = true
+
+[[files]]
+path = "RealESRGAN_x4plus.pth"
+url = "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth"
+sha256 = "4fa0d38905f75ac06eb49a7951b426670021be3018265fd191d2125df9d682f1"

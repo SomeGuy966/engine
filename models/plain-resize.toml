@@ -1,0 +1,11 @@
+name = "Plain resize (no AI)"
+backend = "resize"
+description = "Standard Lanczos enlargement. Adds no detail, invents nothing."
+best_for = "Comparison baseline; dense small text where AI might guess wrong letters."
+speed = "instant"
+default_scale = 2
+max_scale = 8
+order = 90
+
+[options]
+filter = "lanczos"   # lanczos | bicubic | nearest

@@ -1,0 +1,12 @@
+# Big or private things that never go to GitHub
+.venv/
+models/weights/
+vendor/
+output/
+uploads/
+logs/
+
+# Python / macOS clutter
+__pycache__/
+*.pyc
+.DS_Store

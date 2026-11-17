@@ -1,0 +1,22 @@
+# A model card = one "outfit". The engine core never changes; only cards do.
+name = "UltraSharp V2"
+backend = "spandrel"                      # which engine runs it (spandrel | seedvr2 | resize)
+weights = "4x-UltraSharpV2.safetensors"   # file inside models/weights/
+description = "Newest general-purpose model (DAT2 transformer). Sharp and faithful to the original."
+best_for = "A touch more fine detail than Lite, but about 12x slower."
+speed = "~2-3 min"
+default_scale = 2
+max_scale = 4
+order = 20
+license = "CC BY-NC-SA 4.0 (personal / non-commercial use)"
+source = "https://huggingface.co/Kim2091/UltraSharpV2"
+
+[options]
+tile = 256        # image is processed in tiles this big (bigger tiles thrash memory on 16 GB)
+overlap = 24
+half = false
+
+[[files]]
+path = "4x-UltraSharpV2.safetensors"
+url = "https://huggingface.co/Kim2091/UltraSharpV2/resolve/main/4x-UltraSharpV2.safetensors"
+sha256 = "2b5db674aa8f3864a696dccd1d07d7cc0500fbf220f35044cd30eee9a7f971a7"

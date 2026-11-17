@@ -1,0 +1,22 @@
+name = "UltraSharp V2 Lite"
+backend = "spandrel"
+weights = "4x-UltraSharpV2_Lite.safetensors"
+description = "Lighter version of UltraSharp V2 (RealPLKSR architecture). Much faster, slightly less detail."
+best_for = "Best everyday choice: sharp, faithful, and quick. Photos, art, and UI."
+speed = "~10 s"
+default_scale = 2
+max_scale = 4
+order = 10
+default = true
+license = "CC BY-NC-SA 4.0 (personal / non-commercial use)"
+source = "https://huggingface.co/Kim2091/UltraSharpV2"
+
+[options]
+tile = 512
+overlap = 32
+half = true
+
+[[files]]
+path = "4x-UltraSharpV2_Lite.safetensors"
+url = "https://huggingface.co/Kim2091/UltraSharpV2/resolve/main/4x-UltraSharpV2_Lite.safetensors"
+sha256 = "7a330ef6b7c632477d311ac03499c91c350e35c5986d4a6c295f0628cb871a09"

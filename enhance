@@ -1,0 +1,6 @@
+#!/bin/bash
+# Command-line Engine:  ./enhance photo.png [--model ID] [--scale 2] [--open]
+#                       ./enhance --list
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export PYTHONPATH="$DIR" PYTHONSAFEPATH=1 HF_HUB_OFFLINE=1 HF_HUB_DISABLE_TELEMETRY=1 DO_NOT_TRACK=1
+exec "$DIR/.venv/bin/python" -m engine.cli "$@"

@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Engine</title>
+<style>
+  :root {
+    --bg: #f5f5f7; --panel: #ffffff; --ink: #1d1d1f; --muted: #6e6e73; --line: #d9d9de;
+    --accent: #0a66d8; --accent-ink: #ffffff; --soft: #eef3fb; --warn: #9a5b00; --err: #b3261e; --ok: #1e7c3a;
+    --radius: 14px; --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161618; --panel: #1f1f22; --ink: #f2f2f4; --muted: #a1a1a8; --line: #36363b;
+      --accent: #4c9bff; --accent-ink: #0b1220; --soft: #1c2636; --warn: #e3a64a; --err: #ff8a80; --ok: #6fd68e;
+      --shadow: 0 1px 2px rgba(0,0,0,.4);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 28px 20px 60px; }
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+  h1 { font-size: 26px; margin: 0; letter-spacing: -.01em; }
+  .sub { color: var(--muted); font-size: 13px; }
+  .grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
+  .label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px; }
+  .drop { border: 2px dashed var(--line); border-radius: 12px; min-height: 230px; display: flex; flex-direction: column;
+          align-items: center; justify-content: center; text-align: center; padding: 16px; cursor: pointer; transition: .15s; position: relative; overflow: hidden; }
+  .drop:hover, .drop.over { border-color: var(--accent); background: var(--soft); }
+  .drop img { max-width: 100%; max-height: 260px; border-radius: 8px; display: block; }
+  .drop .hint { color: var(--muted); font-size: 14px; }
+  .drop .big { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+  .meta { margin-top: 10px; font-size: 13px; color: var(--muted); word-break: break-all; min-height: 18px; }
+  .row { display: flex; gap: 8px; margin-top: 12px; }
+  input[type=text] { flex: 1; min-width: 0; font: inherit; font-size: 13px; padding: 9px 11px; border-radius: 9px;
+                     border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+  input[type=text]:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  button { font: inherit; font-size: 14px; border-radius: 9px; border: 1px solid var(--line); background: var(--panel);
+           color: var(--ink); padding: 8px 13px; cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:disabled { opacity: .45; cursor: default; }
+  .models { display: flex; flex-direction: column; gap: 8px; }
+  .model { display: grid; grid-template-columns: 18px 1fr; gap: 10px; align-items: start; border: 1px solid var(--line);
+           border-radius: 11px; padding: 10px 12px; cursor: pointer; }
+  .model:hover { border-color: var(--accent); }
+  .model.sel { border-color: var(--accent); background: var(--soft); }
+  .model.off { opacity: .5; cursor: not-allowed; }
+  .model input { margin: 3px 0 0; accent-color: var(--accent); }
+  .model .n { font-weight: 600; }
+  .model .tag { font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 0 7px; margin-left: 6px; white-space: nowrap; }
+  .model .d { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .scales { display: flex; gap: 6px; margin-top: 4px; }
+  .scales button { flex: 1; }
+  .scales button.sel { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .dims { font-size: 13px; color: var(--muted); margin-top: 8px; min-height: 18px; }
+  .note { font-size: 13px; color: var(--warn); margin-top: 8px; }
+  .run { width: 100%; margin-top: 14px; font-size: 17px; font-weight: 600; padding: 13px; background: var(--accent);
+         color: var(--accent-ink); border-color: var(--accent); }
+  .run.stop { background: var(--panel); color: var(--err); border-color: var(--err); }
+  .progress { margin-top: 12px; display: none; }
+  .bar { height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; }
+  .bar > div { height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+  .bar.indet > div { width: 35%; animation: slide 1.2s infinite ease-in-out; }
+  @keyframes slide { from { margin-left: -35%; } to { margin-left: 100%; } }
+  .status { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .status .msg { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  details { margin-top: 8px; font-size: 12px; }
+  details pre { max-height: 180px; overflow: auto; background: var(--bg); border-radius: 8px; padding: 8px; white-space: pre-wrap; margin: 6px 0 0; }
+  .error { color: var(--err); font-size: 14px; margin-top: 10px; white-space: pre-wrap; }
+  #result { margin-top: 16px; display: none; }
+  .rhead { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .rhead .ok { color: var(--ok); font-weight: 600; }
+  .cmp-wrap { border-radius: 10px; overflow: auto; background: repeating-conic-gradient(#8881 0 25%, transparent 0 50%) 0 0/16px 16px; max-height: 72vh; }
+  .cmp { position: relative; width: 100%; user-select: none; touch-action: none; cursor: ew-resize; }
+  .cmp img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+  .cmp .after { clip-path: inset(0 0 0 var(--split, 50%)); }
+  .cmp .divider { position: absolute; top: 0; bottom: 0; left: var(--split, 50%); width: 2px; margin-left: -1px; background: #fff; box-shadow: 0 0 0 1px #0006; pointer-events: none; }
+  .cmp .tagl, .cmp .tagr { position: absolute; top: 8px; font-size: 12px; padding: 2px 8px; border-radius: 99px; background: #000a; color: #fff; pointer-events: none; }
+  .cmp .tagl { left: 8px; } .cmp .tagr { right: 8px; }
+  .path { font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-top: 10px; word-break: break-all; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  footer { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 22px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  .gone { text-align: center; padding: 80px 20px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main id="app">
+  <header>
+    <div>
+      <h1>Engine</h1>
+      <div class="sub">Private image enhancer. Everything runs on this Mac.</div>
+    </div>
+    <div class="sub" id="ver"></div>
+  </header>
+
+  <div class="grid">
+    <section class="panel">
+      <p class="label">1 · Image</p>
+      <div class="drop" id="drop" tabindex="0" aria-label="Choose an image">
+        <div id="dropEmpty">
+          <div class="big">Drop an image here</div>
+          <div class="hint">or click to choose · or paste with ⌘V</div>
+        </div>
+        <img id="preview" alt="" hidden>
+      </div>
+      <div class="meta" id="meta"></div>
+      <div class="row">
+        <input type="text" id="pathInput" placeholder="…or paste a file path, e.g. ~/Desktop/shot.png" spellcheck="false">
+        <button id="pathBtn">Use path</button>
+      </div>
+      <input type="file" id="file" accept="image/*" hidden>
+    </section>
+
+    <section class="panel">
+      <p class="label">2 · Model</p>
+      <div class="models" id="models"><div class="sub">Loading models…</div></div>
+      <p class="label" style="margin-top:16px">3 · Enlarge by</p>
+      <div class="scales" id="scales"></div>
+      <div class="dims" id="dims"></div>
+      <div class="note" id="note" hidden></div>
+      <button class="run" id="run" disabled>Run</button>
+      <div class="progress" id="progress">
+        <div class="bar" id="bar"><div></div></div>
+        <div class="status"><span class="msg" id="msg"></span><span id="elapsed"></span></div>
+        <details><summary>Details</summary><pre id="log"></pre></details>
+      </div>
+      <div class="error" id="error" hidden></div>
+    </section>
+  </div>
+
+  <section class="panel" id="result">
+    <div class="rhead">
+      <div><span class="ok">Done</span> <span class="sub" id="rinfo"></span></div>
+      <div class="actions" style="margin:0">
+        <button id="zoomBtn">Zoom 100%</button>
+      </div>
+    </div>
+    <div class="cmp-wrap" id="cmpWrap">
+      <div class="cmp" id="cmp">
+        <img id="before" alt="Before">
+        <img id="after" class="after" alt="After">
+        <div class="divider"></div>
+        <span class="tagl">Before</span><span class="tagr">After</span>
+      </div>
+    </div>
+    <div class="sub" style="margin-top:6px">Drag across the image to compare.</div>
+    <div class="path" id="outPath"></div>
+    <div class="actions">
+      <button id="openBtn">Open in Preview</button>
+      <button id="revealBtn">Show in Finder</button>
+      <button id="copyBtn">Copy path</button>
+    </div>
+  </section>
+
+  <footer>
+    <span>Results are saved in Engine/output · <a href="#" id="outDir">open folder</a></span>
+    <button id="quitBtn">Quit Engine</button>
+  </footer>
+</main>
+
+<script>
+const TOKEN = "__ENGINE_TOKEN__";
+const $ = (id) => document.getElementById(id);
+const S = { image: null, models: [], model: null, scale: 2, job: null, logLen: 0, zoom: false, result: null };
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, { ...opts, headers: { "X-Engine-Token": TOKEN, ...(opts.headers || {}) } });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+}
+const post = (path, body) => api(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+const imgURL = (p) => `/api/image?token=${encodeURIComponent(TOKEN)}&path=${encodeURIComponent(p)}&t=${Date.now()}`;
+const fmtS = (s) => s < 60 ? `${s.toFixed(0)}s` : `${Math.floor(s / 60)}m ${String(Math.round(s % 60)).padStart(2, "0")}s`;
+function showError(msg) { const e = $("error"); e.textContent = msg || ""; e.hidden = !msg; }
+
+// ---------- image in ----------
+function setImage(info) {
+  S.image = info;
+  $("preview").src = imgURL(info.path);
+  $("preview").hidden = false;
+  $("dropEmpty").hidden = true;
+  $("meta").textContent = `${info.name} · ${info.width}×${info.height}`;
+  showError("");
+  render();
+}
+async function upload(file, name) {
+  showError("");
+  $("meta").textContent = "Loading…";
+  try {
+    const info = await api("/api/upload", { method: "POST", body: file,
+      headers: { "X-Filename": encodeURIComponent(name || file.name || "pasted.png") } });
+    setImage(info);
+  } catch (e) { $("meta").textContent = ""; showError(e.message); }
+}
+async function usePath() {
+  const p = $("pathInput").value.trim();
+  if (!p) return;
+  try { setImage(await post("/api/inspect", { path: p })); }
+  catch (e) { showError(e.message); }
+}
+const drop = $("drop");
+drop.onclick = () => $("file").click();
+drop.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("file").click(); } };
+$("file").onchange = (e) => { const f = e.target.files[0]; if (f) upload(f); e.target.value = ""; };
+["dragenter", "dragover"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", (e) => { const f = e.dataTransfer.files[0]; if (f) upload(f); });
+document.addEventListener("dragover", (e) => e.preventDefault());
+document.addEventListener("drop", (e) => e.preventDefault());
+document.addEventListener("paste", (e) => {
+  if (document.activeElement === $("pathInput")) return;
+  const item = [...(e.clipboardData?.items || [])].find((i) => i.type.startsWith("image/"));
+  if (item) { e.preventDefault(); upload(item.getAsFile(), "pasted.png"); }
+});
+$("pathBtn").onclick = usePath;
+$("pathInput").onkeydown = (e) => { if (e.key === "Enter") usePath(); };
+
+// ---------- model + scale ----------
+function card() { return S.models.find((m) => m.id === S.model); }
+function render() {
+  const box = $("models");
+  box.innerHTML = "";
+  for (const m of S.models) {
+    const el = document.createElement("label");
+    el.className = "model" + (m.id === S.model ? " sel" : "") + (m.available ? "" : " off");
+    el.innerHTML = `<input type="radio" name="model" ${m.id === S.model ? "checked" : ""} ${m.available ? "" : "disabled"}>
+      <div><span class="n"></span>${m.speed ? `<span class="tag"></span>` : ""}<div class="d"></div></div>`;
+    el.querySelector(".n").textContent = m.name;
+    if (m.speed) el.querySelector(".tag").textContent = m.speed;
+    el.querySelector(".d").textContent = m.available ? (m.best_for || m.description)
+      : `Not downloaded (${m.missing_files.join(", ")}). Run setup.sh.`;
+    if (m.available) el.onclick = () => { if (S.model !== m.id) { S.model = m.id; S.scale = Math.min(S.scale, m.max_scale); render(); } };
+    box.appendChild(el);
+  }
+  const c = card();
+  const sc = $("scales");
+  sc.innerHTML = "";
+  for (const s of [2, 3, 4]) {
+    const b = document.createElement("button");
+    b.textContent = `${s}×`;
+    b.className = s === S.scale ? "sel" : "";
+    b.disabled = !c || s > c.max_scale;
+    b.onclick = () => { S.scale = s; render(); };
+    sc.appendChild(b);
+  }
+  if (S.image) {
+    const w = Math.round(S.image.width * S.scale), h = Math.round(S.image.height * S.scale);
+    $("dims").textContent = `${S.image.width}×${S.image.height} → ${w}×${h} (${(w * h / 1e6).toFixed(1)} MP)`;
+  } else $("dims").textContent = "";
+  const note = $("note");
+  if (c && c.backend === "seedvr2") {
+    note.hidden = false;
+    note.textContent = "SeedVR2 is the slowest model: expect a few minutes, and your Mac will get warm. Close heavy apps first.";
+  } else note.hidden = true;
+  const running = S.job && S.job.state === "running";
+  $("run").disabled = !running && !(S.image && c && c.available);
+  $("run").textContent = running ? "Cancel" : "Run";
+  $("run").classList.toggle("stop", !!running);
+}
+
+async function loadModels() {
+  const { models, problems } = await api("/api/models");
+  S.models = models;
+  const def = models.find((m) => m.default && m.available) || models.find((m) => m.available);
+  if (def) { S.model = def.id; S.scale = Math.min(def.default_scale, def.max_scale); }
+  if (problems.length) showError("Model card problems:\n" + problems.join("\n"));
+  render();
+}
+
+// ---------- run ----------
+let pollTimer = null;
+$("run").onclick = async () => {
+  if (S.job && S.job.state === "running") { await post("/api/cancel"); return; }
+  showError("");
+  try {
+    await post("/api/run", { path: S.image.path, model: S.model, scale: S.scale });
+    S.job = { state: "running", started: Date.now() / 1000 };
+    S.logLen = 0;
+    $("log").textContent = "";
+    $("progress").style.display = "block";
+    render();
+    poll();
+  } catch (e) { showError(e.message); }
+};
+document.addEventListener("keydown", (e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && !$("run").disabled) $("run").click(); });
+
+async function poll() {
+  clearTimeout(pollTimer);
+  try {
+    const j = await api(`/api/job?since=${S.logLen}`);
+    if (j.log && j.log.length) { $("log").textContent += j.log.join("\n") + "\n"; $("log").scrollTop = 1e9; }
+    S.logLen = j.log_len || S.logLen;
+    S.job = j;
+    const bar = $("bar");
+    const indet = j.state === "running" && (!j.progress || j.progress <= 0 || j.progress >= 1);
+    bar.classList.toggle("indet", indet);
+    bar.firstElementChild.style.width = indet ? "" : `${Math.round((j.progress || 0) * 100)}%`;
+    $("msg").textContent = j.message || "";
+    $("elapsed").textContent = j.started ? fmtS(((j.finished || Date.now() / 1000) - j.started)) : "";
+    if (j.state === "running") { pollTimer = setTimeout(poll, 500); }
+    else {
+      if (j.state === "done" && (!S.result || S.result.output_path !== j.result.output_path)) showResult(j.result, j.path);
+      if (j.state === "error") showError(j.error);
+      if (j.state === "cancelled") $("msg").textContent = "Cancelled";
+      if (j.state !== "done") bar.firstElementChild.style.width = "0";
+      pollTimer = setTimeout(heartbeat, 10000);
+    }
+  } catch (e) { pollTimer = setTimeout(poll, 2000); }
+  render();
+}
+async function heartbeat() {  // keeps Engine running while this tab is open
+  try { await api("/api/ping"); } catch (e) {}
+  if (!(S.job && S.job.state === "running")) pollTimer = setTimeout(heartbeat, 10000);
+}
+
+// ---------- result ----------
+function setSplit(pct) { $("cmp").style.setProperty("--split", `${Math.max(0, Math.min(100, pct))}%`); }
+function showResult(r, inputPath) {
+  S.result = r;
+  const [w, h] = r.output_size;
+  $("cmp").style.aspectRatio = `${w} / ${h}`;
+  $("before").src = imgURL(inputPath || S.image.path);
+  $("after").src = imgURL(r.output_path);
+  $("rinfo").textContent = `${r.model_name} · ${r.input_size.join("×")} → ${w}×${h} · ${fmtS(r.seconds)}`;
+  $("outPath").textContent = r.output_path;
+  setSplit(50);
+  S.zoom = false; applyZoom();
+  $("result").style.display = "block";
+  $("result").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function applyZoom() {
+  const c = $("cmp");
+  if (S.zoom && S.result) { c.style.width = `${S.result.output_size[0] / devicePixelRatio}px`; $("zoomBtn").textContent = "Fit"; }
+  else { c.style.width = "100%"; $("zoomBtn").textContent = "Zoom 100%"; }
+}
+$("zoomBtn").onclick = () => { S.zoom = !S.zoom; applyZoom(); };
+let dragging = false;
+const cmp = $("cmp");
+const splitAt = (e) => { const b = cmp.getBoundingClientRect(); setSplit(((e.clientX - b.left) / b.width) * 100); };
+cmp.addEventListener("pointerdown", (e) => { dragging = true; cmp.setPointerCapture(e.pointerId); splitAt(e); });
+cmp.addEventListener("pointermove", (e) => { if (dragging) splitAt(e); });
+cmp.addEventListener("pointerup", () => { dragging = false; });
+$("openBtn").onclick = () => post("/api/open", { path: S.result.output_path }).catch((e) => showError(e.message));
+$("revealBtn").onclick = () => post("/api/reveal", { path: S.result.output_path }).catch((e) => showError(e.message));
+$("copyBtn").onclick = async () => {
+  try { await navigator.clipboard.writeText(S.result.output_path); $("copyBtn").textContent = "Copied"; setTimeout(() => ($("copyBtn").textContent = "Copy path"), 1500); }
+  catch (e) { showError("Couldn't copy - select the path above instead."); }
+};
+$("outDir").onclick = (e) => { e.preventDefault(); post("/api/open-output"); };
+$("quitBtn").onclick = async () => {
+  if (S.job && S.job.state === "running" && !confirm("An image is still being enhanced. Quit anyway?")) return;
+  try { await post("/api/quit"); } catch (e) {}
+  clearTimeout(pollTimer);
+  document.body.innerHTML = '<div class="gone"><h2>Engine has quit</h2><p>You can close this tab. Open Engine.app to start it again.</p></div>';
+};
+
+// ---------- start ----------
+api("/api/ping").then((p) => ($("ver").textContent = `v${p.version}`));
+loadModels().catch((e) => showError(e.message));
+api("/api/job").then((j) => { if (j.state === "running") { S.job = j; $("progress").style.display = "block"; poll(); } else heartbeat(); });
+</script>
+</body>
+</html>
