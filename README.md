@@ -1,9 +1,7 @@
 # Engine
 
-A private image enhancer for your Mac. It enlarges blurry or small images (for
-example a screenshot of a bigger picture) and makes them sharper using AI
-models that run **entirely on this computer**. No website, no account, no
-internet connection, no Claude needed.
+A private image enhancer for your Mac. It enlarges blurry or small images and
+makes them sharper using AI models that run **entirely locally**.
 
 ---
 
@@ -17,11 +15,12 @@ internet connection, no Claude needed.
    - click the box and choose a file,
    - press **⌘V** to paste (handy right after taking a screenshot with ⌃⇧⌘4, which copies it),
    - or paste a file path (like `~/Desktop/shot.png`) and press **Use path**.
-3. **Pick a model** and **how much bigger** (2×, 3×, 4×). The page shows the final size.
+3. **Pick one or more models** and **how much bigger** (2×, 3×, 4×). The page shows the final size.
 4. Press **Run** (or **⌘↩**).
 5. When it's done, drag across the picture to compare **before / after**. The
    result is saved in `Engine/output/`. Use **Open in Preview**, **Show in
-   Finder**, or **Copy path**.
+   Finder**, or **Copy path**. With several models, see
+   [Comparing models side by side](#comparing-models-side-by-side).
 6. **Quitting:** press **Quit Engine**, or just close the tab (Engine shuts
    itself down about 15 minutes later).
 
@@ -52,8 +51,28 @@ Rules of thumb:
 - **Mostly small text?** No AI can recover letters that were never captured.
   The AI models can draw *wrong* letters. Compare with "Plain resize".
 - **2× is usually enough.** 4× makes huge files (a 1440×1080 image becomes 25 megapixels).
-- **Best fix of all:** if you can get the original image (right-click → Save
-  Image, or zoom in before screenshotting), do that instead of upscaling.
+- **Can't decide?** Tick several models and compare them side by side (below).
+
+---
+
+## Comparing models side by side
+
+Tick as many models as you like (at least one) and press **Run N models**.
+Engine runs them one after another on the same image, then shows:
+
+- **One panel per model, with a single shared before/after line.** Drag
+  across any panel and the line moves on all of them together, so you can
+  compare the same spot in every result at once. **Zoom 100%** shows real
+  pixels.
+- **A comparison image** saved in `Engine/output/` as
+  `<name>__compare_2x.png`: the original plus every model's result in one
+  labeled grid, handy to keep or share.
+- **Each model's full-size result** as its own file, with Open / Show buttons.
+
+If one model fails (for example SeedVR2 running out of memory), the others
+still finish and the failure is listed under the results. With only one model
+ticked, Engine works exactly as before. Total time is roughly the sum of the
+models' times, so leave SeedVR2 out for quick comparisons.
 
 ---
 
@@ -64,10 +83,12 @@ cd ~/Documents/Engine
 ./enhance ~/Desktop/shot.png                        # default model (V2 Lite), 2x
 ./enhance ~/Desktop/shot.png -m seedvr2 -s 2 --open # pick model + scale, open result
 ./enhance ~/Desktop/*.png -m ultrasharp             # several images, one after another
+./enhance ~/Desktop/shot.png -m ultrasharp-v2-lite,realesrgan,plain-resize   # compare models
 ./enhance --list                                    # show all models
 ```
 
-It prints the path of each result. `-o FOLDER` saves somewhere other than `Engine/output`.
+It prints the path of each result (and of the comparison image when you give
+several models). `-o FOLDER` saves somewhere other than `Engine/output`.
 
 ---
 
@@ -135,7 +156,7 @@ The rest of Engine doesn't change.
 
 ## Privacy
 
-- **Nothing leaves your Mac.** Images are processed by models stored in `models/weights/`.
+- **Nothing leaves your computer.** Images are processed by models stored in `models/weights/`.
 - The app's server only listens on `127.0.0.1`: other computers, even on the
   same Wi-Fi, can't reach it. Each session also uses a secret key, so other
   websites open in your browser can't talk to it.
@@ -173,7 +194,7 @@ Measured on this Mac (M5 MacBook Air, 16 GB):
 ## Install on another Mac / reinstall
 
 ```bash
-git clone https://github.com/SomeGuy966/engine.git ~/Documents/Engine   # private repo
+git clone https://github.com/SomeGuy966/engine.git ~/Documents/Engine
 cd ~/Documents/Engine
 ./setup.sh                      # Python env + SeedVR2 runner + ~7.6 GB of models
 ./setup.sh --skip seedvr2-3b    # same, without the big SeedVR2 download
@@ -206,7 +227,8 @@ Engine/
 ├── README.md             this file
 ├── requirements.txt      exact Python library versions
 ├── engine/               the core (the "body")
-│   ├── core.py           open → upscale → resize → save
+│   ├── core.py           open → upscale → resize → save (one model or several)
+│   ├── compare.py        builds the side-by-side comparison image
 │   ├── cards.py          reads the model cards
 │   ├── server.py         the local app
 │   ├── cli.py            the Terminal command

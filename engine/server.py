@@ -76,11 +76,25 @@ def _run_job(job: dict) -> None:
             job["message"] = msg
 
     try:
-        result = ENGINE.enhance(job["path"], model=job["model"], scale=job["scale"], report=report)
-        job["result"] = result.to_dict()
-        _allow(Path(result.output_path))
+        models = job["models"]
+        if len(models) == 1:
+            result = ENGINE.enhance(job["path"], model=models[0], scale=job["scale"], report=report)
+            job["result"] = result.to_dict()
+            job["results"] = [job["result"]]
+            _allow(Path(result.output_path))
+            _log(f"done: {result.output_path} ({result.seconds}s)")
+        else:
+            multi = ENGINE.enhance_many(job["path"], models, scale=job["scale"], report=report)
+            job.update(multi.to_dict())
+            for r in multi.results:
+                _allow(Path(r.output_path))
+            if multi.comparison_path:
+                _allow(Path(multi.comparison_path))
+            if not multi.results:
+                raise RuntimeError("Every model failed:\n" + "\n".join(
+                    f"{e['model_name']}: {e['error']}" for e in multi.errors))
+            _log(f"done: {len(multi.results)} models, comparison {multi.comparison_path} ({multi.seconds}s)")
         job["state"] = "done"
-        _log(f"done: {result.output_path} ({result.seconds}s)")
     except Cancelled:
         job["state"] = "cancelled"
         job["message"] = "Cancelled"
@@ -218,15 +232,19 @@ class Handler(BaseHTTPRequestHandler):
                 path = body.get("path") or ""
                 if not _is_allowed(path):
                     return self._error("Choose an image first")
+                models = body.get("models") or ([body["model"]] if body.get("model") else [])
+                if not models:
+                    return self._error("Pick at least one model")
                 job = {
                     "id": secrets.token_hex(4), "state": "running", "path": path,
-                    "model": body.get("model"), "scale": body.get("scale"),
+                    "models": [str(m) for m in models], "scale": body.get("scale"),
                     "progress": 0.0, "message": "Starting", "log": [], "result": None,
+                    "results": [], "comparison_path": None, "errors": [],
                     "error": None, "started": time.time(), "finished": None,
                 }
                 STATE["job"] = job
                 threading.Thread(target=_run_job, args=(job,), daemon=True).start()
-            _log(f"run: model={job['model']} scale={job['scale']} {Path(path).name}")
+            _log(f"run: models={','.join(job['models'])} scale={job['scale']} {Path(path).name}")
             return self._json({"id": job["id"]})
 
         if route == "/api/cancel":

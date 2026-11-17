@@ -1,4 +1,5 @@
 """Command-line use:  ./enhance <image> [--model ID] [--scale N] [--out DIR]
+                     ./enhance <image> --model ID1,ID2,...   (compare several models)
                      ./enhance --list
 """
 
@@ -30,7 +31,9 @@ def _list_models() -> int:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="enhance", description="Enlarge and sharpen an image, privately, on this Mac.")
     ap.add_argument("image", nargs="*", help="image file(s) to enhance")
-    ap.add_argument("-m", "--model", help="model id (see --list). Default: the model marked default")
+    ap.add_argument("-m", "--model", action="append",
+                    help="model id (see --list). Several: -m a,b or -m a -m b (also saves a comparison image). "
+                         "Default: the model marked default")
     ap.add_argument("-s", "--scale", type=float, help="how much bigger, e.g. 2 or 4 (default: the model's default)")
     ap.add_argument("-o", "--out", help="folder for results (default: Engine/output)")
     ap.add_argument("-l", "--list", action="store_true", help="list available models")
@@ -55,21 +58,36 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  {pct}{msg}", flush=True)
             last["t"] = now
 
+    models = [m.strip() for group in (args.model or []) for m in group.split(",") if m.strip()]
     status = 0
     for image in args.image:
         print(f"\n> {image}")
         try:
-            r = engine.enhance(image, model=args.model, scale=args.scale, output_dir=args.out, report=report)
+            if len(models) > 1:
+                multi = engine.enhance_many(image, models, scale=args.scale, output_dir=args.out, report=report)
+                results, to_open = multi.results, multi.comparison_path
+            else:
+                r = engine.enhance(image, model=models[0] if models else None, scale=args.scale,
+                                   output_dir=args.out, report=report)
+                results, to_open, multi = [r], r.output_path, None
         except (CardError, FileNotFoundError, ValueError, RuntimeError) as e:
             print(f"  Error: {e}", file=sys.stderr)
             status = 1
             continue
-        print(f"\nDone in {r.seconds:g}s with {r.model_name}: "
-              f"{r.input_size[0]}x{r.input_size[1]} -> {r.output_size[0]}x{r.output_size[1]}")
-        print(r.output_path)
-        if args.open:
+        for r in results:
+            print(f"\nDone in {r.seconds:g}s with {r.model_name}: "
+                  f"{r.input_size[0]}x{r.input_size[1]} -> {r.output_size[0]}x{r.output_size[1]}")
+            print(r.output_path)
+        if multi:
+            for e in multi.errors:
+                print(f"\n  {e['model_name']} failed: {e['error']}", file=sys.stderr)
+                status = 1
+            if multi.comparison_path:
+                print(f"\nComparison image ({len(multi.results)} models, {multi.seconds:g}s total):")
+                print(multi.comparison_path)
+        if args.open and to_open:
             import subprocess
-            subprocess.run(["open", r.output_path], check=False)
+            subprocess.run(["open", to_open], check=False)
     return status
 
 
